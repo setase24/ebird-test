@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<!-- saved from url=(0058)file:///C:/Users/sebas/Downloads/ebird_widget_final_1.html -->
+<html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget eBird Final</title>
+<link href="./Widget eBird Final_files/css2" rel="stylesheet">
+<style>
+:root {
+  --bg:#f8f7f5;--surface:#fff;--border:#e2e0db;
+  --text:#1a1916;--text-2:#5a5750;--text-3:#9a968e;
+  --accent:#3d6b52;--accent-light:#edf4ef;
+  --red:#8a3a3a;--radius:10px;--radius-sm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);padding:40px 24px;}
+.wrap{max-width:600px;margin:0 auto;}
+h2{font-size:18px;font-weight:500;margin-bottom:20px;}
+.field label{font-size:11px;color:var(--text-2);font-weight:500;display:block;margin-bottom:5px;}
+.field input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--bg);color:var(--text);outline:none;transition:border-color .18s;}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,107,82,.08);}
+.hint{font-size:10px;color:var(--text-3);margin-top:4px;}
+.status{font-size:10px;margin-top:5px;display:none;align-items:center;gap:5px;}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.preview{display:none;margin-top:14px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);}
+.preview-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--accent);flex-shrink:0;}
+.p-name{font-size:13px;font-weight:500;color:var(--text);}
+.p-since{font-size:11px;color:var(--text-3);margin-top:2px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;}
+.stat-box{padding:16px 12px;text-align:center;border-right:1px solid var(--border);}
+.stat-box:last-child{border-right:none;}
+.stat-val{font-size:28px;font-weight:500;color:var(--accent);line-height:1;}
+.stat-lbl{font-size:10px;color:var(--text-3);margin-top:4px;line-height:1.3;}
+.loading{padding:18px;text-align:center;font-size:12px;color:var(--text-3);}
+.error-box{padding:12px 16px;font-size:12px;color:var(--red);background:#f8eeed;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Widget eBird — prueba final</h2>
+  <div class="field">
+    <label>Perfil eBird (URL)</label>
+    <input type="text" id="ebird-input" placeholder="https://ebird.org/profile/XXXXXXX" oninput="handleInput(this)">
+    <div class="hint">El perfil debe ser público</div>
+    <div class="status" id="status">
+      <div class="dot" id="status-dot"></div>
+      <span id="status-txt"></span>
+    </div>
+  </div>
+
+  <div class="preview" id="preview">
+    <div class="loading" id="loading">Consultando perfil eBird...</div>
+    <div id="profile-content" style="display:none">
+      <div class="preview-header">
+        <div class="avatar" id="avatar">—</div>
+        <div>
+          <div class="p-name" id="p-name">—</div>
+          <div class="p-since" id="p-since">—</div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-val" id="s-total">—</div>
+          <div class="stat-lbl">Listas subidas<br>en Colombia</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="s-complete">—</div>
+          <div class="stat-lbl">Listas completas<br>en Colombia</div>
+        </div>
+      </div>
+    </div>
+    <div class="error-box" id="error-box" style="display:none">Perfil no encontrado o no es público.</div>
+  </div>
+</div>
+
+<script>
+let timer = null;
+
+function handleInput(input) {
+  const val = input.value.trim();
+  const status = document.getElementById('status');
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-txt');
+  const preview = document.getElementById('preview');
+
+  if (!val) { status.style.display='none'; preview.style.display='none'; return; }
+
+  const re = /ebird\.org\/profile\/([^\/\s?]+)/;
+  const m = val.match(re);
+  status.style.display = 'flex';
+
+  if (!m) {
+    dot.style.background = 'var(--red)';
+    txt.textContent = 'Pega la URL completa de tu perfil eBird';
+    preview.style.display = 'none';
+    return;
+  }
+
+  // Limpiar ID — quitar región si viene pegada (/CO, /world, etc.)
+  const id = m[1].split('/')[0];
+
+  dot.style.background = '#b0a040';
+  txt.textContent = 'Verificando perfil...';
+  preview.style.display = 'block';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('profile-content').style.display = 'none';
+  document.getElementById('error-box').style.display = 'none';
+
+  clearTimeout(timer);
+  timer = setTimeout(() => loadProfile(id), 700);
+}
+
+async function loadProfile(id) {
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-txt');
+
+  try {
+    const [checklistsResp, listsResp] = await Promise.all([
+      // Listas totales y completas en Colombia
+      fetch(`https://ebird.org/prof/stats/checklists?username=${id}&r=CO`)
+        .then(r => r.json()).catch(() => null),
+      // Nombre del usuario
+      fetch(`https://ebird.org/prof/lists?r=CO&username=${id}`)
+        .then(r => r.json()).catch(() => null)
+    ]);
+
+    const completeLists = checklistsResp ? checklistsResp[0] : 0;
+    const totalLists    = checklistsResp ? checklistsResp[1] : 0;
+    const nombre = listsResp && listsResp[0] ? listsResp[0].userDisplayName || '' : '';
+
+    // Fecha de miembro desde el HTML
+    let since = '';
+    try {
+      const page = await fetch(`https://ebird.org/profile/${id}/CO`);
+      const html = await page.text();
+      const mS = html.match(/eBirder desde[^<]*<a[^>]*>([^<]+)<\/a>/);
+      if (mS) since = 'eBirder desde ' + mS[1].trim();
+    } catch(e) {}
+
+    if (!totalLists && !nombre) { showError(); return; }
+
+    const initials = nombre
+      ? nombre.split(' ').slice(0,2).map(w => w[0]).join('')
+      : id.slice(0,2).toUpperCase();
+
+    document.getElementById('avatar').textContent   = initials;
+    document.getElementById('p-name').textContent   = nombre || id;
+    document.getElementById('p-since').textContent  = since || '';
+    document.getElementById('s-total').textContent   = totalLists    || '—';
+    document.getElementById('s-complete').textContent = completeLists || '—';
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('profile-content').style.display = 'block';
+    dot.style.background = 'var(--accent)';
+    txt.textContent = 'Perfil verificado · ' + (nombre || id);
+
+  } catch(err) {
+    showError();
+  }
+}
+
+function showError() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error-box').style.display = 'block';
+  document.getElementById('status-dot').style.background = 'var(--red)';
+  document.getElementById('status-txt').textContent = 'Perfil no encontrado o no es público';
+}
+</script>
+
+
+</body></html>
