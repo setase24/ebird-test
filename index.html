@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Test eBird — Listas</title>
+<title>Test eBird</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--accent:#3d6b52;--accent-light:#edf4ef;--border:#e2e0db;--text:#1a1916;--text-2:#5a5750;--text-3:#9a968e;--red:#8a3a3a;--bg:#f8f7f5;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);padding:40px 24px;}
-.wrap{max-width:560px;margin:0 auto;}
+.wrap{max-width:580px;margin:0 auto;}
 h2{font-size:17px;font-weight:500;margin-bottom:6px;}
 .sub{font-size:12px;color:var(--text-3);margin-bottom:24px;}
 label{font-size:11px;color:var(--text-2);font-weight:500;display:block;margin-bottom:5px;}
@@ -20,22 +20,22 @@ input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,107,82,.08);
 .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .card{display:none;margin-top:14px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:white;}
 .card-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
-.avi{width:38px;height:38px;border-radius:50%;background:var(--accent-light);color:var(--accent);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.name{font-size:13px;font-weight:500;}
-.since{font-size:11px;color:var(--text-3);margin-top:2px;}
-.stats{display:grid;grid-template-columns:1fr 1fr;}
-.stat{padding:18px 12px;text-align:center;border-right:1px solid var(--border);}
+.avi{width:40px;height:40px;border-radius:50%;background:var(--accent-light);color:var(--accent);font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.p-name{font-size:13px;font-weight:500;}
+.p-since{font-size:11px;color:var(--text-3);margin-top:2px;}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);}
+.stat{padding:16px 8px;text-align:center;border-right:1px solid var(--border);}
 .stat:last-child{border-right:none;}
-.stat-n{font-size:30px;font-weight:500;color:var(--accent);line-height:1;}
-.stat-l{font-size:10px;color:var(--text-3);margin-top:4px;line-height:1.4;}
+.stat-n{font-size:22px;font-weight:500;color:var(--accent);line-height:1;}
+.stat-l{font-size:9px;color:var(--text-3);margin-top:4px;line-height:1.4;}
 .loading{padding:16px;text-align:center;font-size:12px;color:var(--text-3);}
 .err{padding:12px 16px;font-size:12px;color:var(--red);background:#f8eeed;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h2>Consulta de listas eBird</h2>
-  <p class="sub">Ingresa la URL del perfil para ver las listas subidas en Colombia</p>
+  <h2>Consulta de perfil eBird</h2>
+  <p class="sub">Estadisticas en Colombia al ingresar la URL del perfil</p>
   <label>URL del perfil eBird</label>
   <input type="text" id="url" placeholder="https://ebird.org/profile/XXXXXXX" oninput="check(this)">
   <div class="hint">El perfil debe ser publico en eBird</div>
@@ -45,66 +45,69 @@ input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(61,107,82,.08);
     <div id="ok" style="display:none">
       <div class="card-header">
         <div class="avi" id="avi">-</div>
-        <div><div class="name" id="nm">-</div><div class="since" id="sc">-</div></div>
+        <div>
+          <div class="p-name" id="nm">-</div>
+          <div class="p-since" id="sc">-</div>
+        </div>
       </div>
       <div class="stats">
-        <div class="stat"><div class="stat-n" id="s1">-</div><div class="stat-l">Listas subidas en Colombia</div></div>
-        <div class="stat"><div class="stat-n" id="s2">-</div><div class="stat-l">Listas completas en Colombia</div></div>
+        <div class="stat"><div class="stat-n" id="s1">-</div><div class="stat-l">Listas<br>subidas</div></div>
+        <div class="stat"><div class="stat-n" id="s2">-</div><div class="stat-l">Listas<br>completas</div></div>
+        <div class="stat"><div class="stat-n" id="s3">-</div><div class="stat-l">Obs. con<br>foto</div></div>
+        <div class="stat"><div class="stat-n" id="s4">-</div><div class="stat-l">Obs. con<br>audio</div></div>
       </div>
     </div>
     <div class="err" id="er" style="display:none">Perfil no encontrado o privado.</div>
   </div>
 </div>
 <script>
-const PROXY = 'https://script.google.com/macros/s/AKfycbwFwpOr7Zk8yPj6gFoWtgbUotdV_QggJhNVVsYxwZAwBIIlORJSq8XooTnD4HuZS4Mi/exec';
-let t = null;
-
-function check(inp) {
-  const v = inp.value.trim();
-  const st = document.getElementById('st'), dot = document.getElementById('dot'), stxt = document.getElementById('stxt'), card = document.getElementById('card');
-  if (!v) { st.style.display='none'; card.style.display='none'; return; }
-  const m = v.match(/ebird\.org\/profile\/([^\/\s?]+)/);
-  st.style.display = 'flex';
-  if (!m) { dot.style.background='var(--red)'; stxt.textContent='Pega la URL completa de tu perfil eBird'; card.style.display='none'; return; }
-  const id = m[1].split('/')[0];
-  dot.style.background = '#b0a040'; stxt.textContent = 'Verificando...';
-  card.style.display = 'block';
-  document.getElementById('ld').style.display = 'block';
-  document.getElementById('ok').style.display = 'none';
-  document.getElementById('er').style.display = 'none';
-  clearTimeout(t); t = setTimeout(() => load(id), 700);
+const PROXY='https://script.google.com/macros/s/AKfycbwFwpOr7Zk8yPj6gFoWtgbUotdV_QggJhNVVsYxwZAwBIIlORJSq8XooTnD4HuZS4Mi/exec';
+let t=null;
+function check(inp){
+  const v=inp.value.trim(),st=document.getElementById('st'),dot=document.getElementById('dot'),stxt=document.getElementById('stxt'),card=document.getElementById('card');
+  if(!v){st.style.display='none';card.style.display='none';return;}
+  const m=v.match(/ebird\.org\/profile\/([^\/\s?]+)/);
+  st.style.display='flex';
+  if(!m){dot.style.background='var(--red)';stxt.textContent='Pega la URL completa';card.style.display='none';return;}
+  const id=m[1].split('/')[0];
+  dot.style.background='#b0a040';stxt.textContent='Verificando...';
+  card.style.display='block';
+  document.getElementById('ld').style.display='block';
+  document.getElementById('ok').style.display='none';
+  document.getElementById('er').style.display='none';
+  clearTimeout(t);t=setTimeout(()=>load(id),700);
 }
-
-async function load(id) {
-  const dot = document.getElementById('dot'), stxt = document.getElementById('stxt');
-  try {
-    const resp = await fetch(PROXY + '?id=' + id + '&region=CO').then(r => r.json());
-    if (!resp || resp.error) { showErr(); return; }
-    const total = resp.lists || 0;
-    const nombre = resp.nombre || '';
-    const since = resp.since || '';
-    // Listas completas — el proxy devuelve solo listas completas, total viene aparte
-    // Usamos lists como listas completas y calculamos desde prof/stats si el proxy lo tiene
-    const complete = resp.listsComplete || resp.lists || 0;
-    if (!total && !nombre) { showErr(); return; }
-    const ini = nombre ? nombre.split(' ').slice(0,2).map(w=>w[0]).join('') : id.slice(0,2).toUpperCase();
-    document.getElementById('avi').textContent = ini;
-    document.getElementById('nm').textContent = nombre || id;
-    document.getElementById('sc').textContent = since ? 'eBirder desde ' + since : '';
-    document.getElementById('s1').textContent = total || '-';
-    document.getElementById('s2').textContent = complete || '-';
-    document.getElementById('ld').style.display = 'none';
-    document.getElementById('ok').style.display = 'block';
-    dot.style.background = 'var(--accent)';
-    stxt.textContent = 'Verificado: ' + (nombre || id);
-  } catch(e) { showErr(); }
+async function load(id){
+  const dot=document.getElementById('dot'),stxt=document.getElementById('stxt');
+  try{
+    const proxy=await fetch(PROXY+'?id='+id+'&region=CO').then(r=>r.json()).catch(()=>null);
+    if(!proxy||proxy.error){showErr();return;}
+    const nombre=proxy.nombre||'';
+    const since=proxy.since||'';
+    const total=proxy.lists||0;
+    const complete=proxy.listsComplete||0;
+    const photos=proxy.photos||0;
+    const audio=proxy.audio||0;
+    if(!total&&!nombre){showErr();return;}
+    const ini=nombre?nombre.split(' ').slice(0,2).map(w=>w[0]).join(''):id.slice(0,2).toUpperCase();
+    document.getElementById('avi').textContent=ini;
+    document.getElementById('nm').textContent=nombre||id;
+    document.getElementById('sc').textContent=since?'eBirder desde '+since:'';
+    document.getElementById('s1').textContent=total||'-';
+    document.getElementById('s2').textContent=complete||'-';
+    document.getElementById('s3').textContent=photos||'-';
+    document.getElementById('s4').textContent=audio||'-';
+    document.getElementById('ld').style.display='none';
+    document.getElementById('ok').style.display='block';
+    dot.style.background='var(--accent)';
+    stxt.textContent='Verificado: '+(nombre||id);
+  }catch(e){showErr();}
 }
-
-function showErr() {
-  document.getElementById('ld').style.display = 'none';
-  document.getElementById('er').style.display = 'block';
-  document.getElementById('dot').style.background = 'var(--red)';
-  document.getElementById('stxt').textContent = 'No encontrado o perfil privado';
+function showErr(){
+  document.getElementById('ld').style.display='none';
+  document.getElementById('er').style.display='block';
+  document.getElementById('dot').style.background='var(--red)';
+  document.getElementById('stxt').textContent='No encontrado o perfil privado';
 }
 </script>
 </body>
